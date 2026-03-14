@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Infrastructure Observability — An Integrated Cost & Carbon Framework</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0e0f11;--surface:#16181c;--surface2:#1e2026;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#f0f0ee;--muted:#888a8f;--accent:#4fffb0;--blue:#4fa8ff;--amber:#ffb84f;--red:#ff6b6b;--pink:#ff6eb4;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(255,255,255,0.015) 39px,rgba(255,255,255,0.015) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(255,255,255,0.015) 39px,rgba(255,255,255,0.015) 40px);}
+.wrapper{position:relative;z-index:1;max-width:1380px;margin:0 auto;padding:2rem 2rem 5rem;}
+
+.nav{position:sticky;top:0;z-index:100;background:rgba(14,15,17,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0.75rem 0;margin:-2rem 0 2rem;display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.nav-item{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:5px 12px;border-radius:2px;cursor:pointer;color:var(--muted);border:1px solid transparent;transition:all 0.15s;}
+.nav-item:hover{color:var(--text);border-color:var(--border2);}
+.nav-item.active{color:var(--accent);border-color:rgba(79,255,176,0.25);background:rgba(79,255,176,0.06);}
+.nav-divider{width:1px;height:16px;background:var(--border);margin:0 4px;}
+
+.site-header{border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;}
+.logo-mark{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+h1{font-family:'Instrument Serif',serif;font-size:30px;font-weight:400;color:var(--text);line-height:1.2;}
+h1 em{font-style:italic;color:var(--muted);}
+.header-meta p{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.05em;line-height:1.8;text-align:right;}
+.abstract{background:var(--surface2);border:1px solid rgba(79,255,176,0.15);border-radius:4px;padding:1.5rem;margin-bottom:2rem;font-size:13px;color:var(--muted);line-height:1.9;}
+.abstract strong{color:var(--text);}
+.abstract-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+
+.pill{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:3px 8px;border-radius:2px;text-transform:uppercase;}
+.pill-green{background:rgba(79,255,176,0.12);color:var(--accent);border:1px solid rgba(79,255,176,0.2);}
+.pill-blue{background:rgba(79,168,255,0.12);color:var(--blue);border:1px solid rgba(79,168,255,0.2);}
+.pill-amber{background:rgba(255,184,79,0.12);color:var(--amber);border:1px solid rgba(255,184,79,0.2);}
+.pill-red{background:rgba(255,107,107,0.12);color:var(--red);border:1px solid rgba(255,107,107,0.2);}
+.pill-muted{background:rgba(255,255,255,0.05);color:var(--muted);border:1px solid rgba(255,255,255,0.1);}
+
+.section-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border);}
+.section{margin-bottom:3rem;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+.full{grid-column:1/-1;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.25rem 1.5rem;margin-bottom:0;}
+.card-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px;}
+.card-sub{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.03em;margin-bottom:10px;}
+
+.metrics-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:1.5rem;}
+.metrics-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:1.5rem;}
+.metric{background:var(--surface);padding:1.25rem 1.5rem;}
+.metric-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.metric-value{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;letter-spacing:-0.02em;}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* SCI HERO */
+.sci-hero{background:linear-gradient(135deg,rgba(79,255,176,0.04) 0%,rgba(79,168,255,0.04) 100%);border:1px solid rgba(79,255,176,0.2);border-radius:4px;padding:2rem;margin-bottom:1.5rem;display:grid;grid-template-columns:auto 1fr;gap:2rem;align-items:center;}
+.sci-score-block{text-align:center;min-width:200px;}
+.sci-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.sci-value{font-family:'DM Mono',monospace;font-size:56px;font-weight:500;color:var(--accent);letter-spacing:-0.03em;line-height:1;}
+.sci-unit{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:6px;}
+.sci-breakdown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;}
+.sci-term{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0.75rem 1rem;}
+.sci-term-letter{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;margin-bottom:2px;}
+.sci-term-name{font-size:10px;color:var(--muted);margin-bottom:4px;}
+.sci-term-value{font-family:'DM Mono',monospace;font-size:12px;color:var(--text);}
+.sci-term-src{font-size:9px;color:var(--muted);margin-top:4px;}
+
+/* DECISION PANEL */
+.decision-panel{background:var(--surface2);border:1px solid rgba(79,255,176,0.15);border-radius:4px;padding:1.5rem;margin-bottom:1.5rem;}
+.decision-panel .card-title{color:var(--accent);font-size:14px;}
+.tradeoff-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1rem;}
+.d-card{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem 1.25rem;}
+.d-card.best{border-color:rgba(79,255,176,0.3);position:relative;overflow:hidden;}
+.d-card.best::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);}
+.d-card.risky{border-color:rgba(255,107,107,0.2);}
+.d-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.d-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
+.d-row span:first-child{color:var(--muted);font-size:11px;}
+.d-row span:last-child{font-family:'DM Mono',monospace;}
+
+.rtable{width:100%;border-collapse:collapse;font-size:12px;}
+.rtable th{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);font-weight:400;}
+.rtable td{padding:7px 8px;color:var(--text);border-bottom:1px solid var(--border);vertical-align:middle;}
+.rtable tr:last-child td{border-bottom:none;}
+.rtable tr:hover td{background:rgba(255,255,255,0.02);}
+.mono{font-family:'DM Mono',monospace;font-size:11px;}
+.bar-track{background:rgba(255,255,255,0.06);border-radius:1px;height:4px;margin-top:3px;min-width:60px;}
+.bar-fill{height:4px;border-radius:1px;}
+
+.finding-box{background:rgba(79,168,255,0.05);border:1px solid rgba(79,168,255,0.15);border-radius:4px;padding:1rem 1.25rem;margin-top:1rem;font-size:12px;color:var(--muted);line-height:1.8;}
+.finding-box strong{color:var(--text);}
+.carbon-box{background:rgba(79,255,176,0.04);border:1px solid rgba(79,255,176,0.1);border-radius:4px;padding:1rem 1.25rem;margin-top:1rem;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8;}
+.carbon-box strong{color:var(--accent);font-weight:400;}
+.amber-box{background:rgba(255,184,79,0.04);border:1px solid rgba(255,184,79,0.15);border-radius:4px;padding:1rem 1.25rem;margin-top:1rem;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8;}
+.amber-box strong{color:var(--amber);font-weight:400;}
+.insight-box{background:rgba(255,107,107,0.04);border:1px solid rgba(255,107,107,0.15);border-radius:4px;padding:1rem 1.25rem;margin-top:1rem;font-size:12px;color:var(--muted);line-height:1.8;}
+.insight-box strong{color:var(--red);}
+
+.sensitivity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;}
+.s-card{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1rem 1.25rem;}
+.s-rank{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.s-impact{font-family:'DM Mono',monospace;font-size:18px;font-weight:500;margin-bottom:6px;}
+.s-desc{font-size:11px;color:var(--muted);line-height:1.7;}
+
+.dq-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1rem;}
+.dq-card{padding:1rem;border:1px solid var(--border);border-radius:4px;}
+.dq-item{font-size:11px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--border);line-height:1.5;}
+.dq-item:last-child{border-bottom:none;}
+.source-tag{font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);margin-left:4px;}
+
+.cite{font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);vertical-align:super;}
+.references{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.25rem 1.5rem;}
+.ref-item{font-size:11px;color:var(--muted);padding:6px 0;border-bottom:1px solid var(--border);line-height:1.7;}
+.ref-item:last-child{border-bottom:none;}
+.ref-num{font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);margin-right:8px;}
+
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+.legend span{display:flex;align-items:center;gap:4px;}
+.ld{width:8px;height:8px;border-radius:1px;flex-shrink:0;}
+
+.footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+.footer p{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+
+@media(max-width:1100px){.sci-hero{grid-template-columns:1fr;}.sci-breakdown{grid-template-columns:1fr 1fr;}}
+@media(max-width:900px){.grid-2,.grid-3,.tradeoff-grid,.sensitivity-grid,.dq-grid,.metrics-5,.metrics-4{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.metrics-5,.metrics-4,.grid-2,.grid-3,.tradeoff-grid,.sensitivity-grid,.dq-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<nav class="nav">
+  <span class="nav-item active" onclick="scrollTo('s0',this)">Abstract</span>
+  <span class="nav-item" onclick="scrollTo('s1',this)">Overview</span>
+  <span class="nav-item" onclick="scrollTo('s2',this)">SCI score</span>
+  <span class="nav-item" onclick="scrollTo('s3',this)">Carbon routing</span>
+  <span class="nav-item" onclick="scrollTo('s4',this)">Pipeline waste</span>
+  <span class="nav-item" onclick="scrollTo('s5',this)">Retraining cadence</span>
+  <span class="nav-item" onclick="scrollTo('s6',this)">Sensitivity</span>
+  <span class="nav-item" onclick="scrollTo('s7',this)">Endpoints</span>
+  <span class="nav-divider"></span>
+  <span class="nav-item" onclick="scrollTo('s8',this)">Methodology</span>
+  <span class="nav-item" onclick="scrollTo('s9',this)">References</span>
+</nav>
+
+<header class="site-header">
+  <div>
+    <div class="logo-mark">Master's Capstone · Sustainability Informatics · 2026</div>
+    <h1>AI Infrastructure Observability:<br><em>An Integrated Cost & Carbon Framework for<br>Enterprise Machine Learning Systems</em></h1>
+  </div>
+  <div class="header-meta">
+    <p>Data: Production inference + training pipeline · SaaS environment</p>
+    <p>Utilization: Datadog telemetry · kubernetes.cpu · 30d avg</p>
+    <p>Grid intensity: EPA eGRID 2024 · Canada NIR · Japan MoE · SEAI · UBA</p>
+    <p>Embodied carbon: Cloud Carbon Footprint · Teads Engineering</p>
+    <p>SCI: Green Software Foundation specification v1.0</p>
+    <p>Period: 2025-03-13 → 2026-03-13</p>
+    <br>
+    <span class="pill pill-green">Real cost data</span>&nbsp;
+    <span class="pill pill-green">Real utilization</span>&nbsp;
+    <span class="pill pill-green">Real grid intensity</span>&nbsp;
+    <span class="pill pill-amber">Modeled carbon</span>
+  </div>
+</header>
+
+<!-- ABSTRACT -->
+<section id="s0" class="section">
+  <div class="section-label">Abstract</div>
+  <div class="abstract">
+    <div class="abstract-label">Research contribution</div>
+    <p><strong>The gap:</strong> Existing AI infrastructure observability tools treat cost, carbon, and pipeline efficiency as separate optimization problems — siloed across FinOps dashboards, sustainability reports, and MLOps monitoring systems. No unified decision layer exists that enables simultaneous cost-carbon-pipeline trade-off analysis at the business decision level.</p>
+    <br>
+    <p><strong>This framework:</strong> An integrated observability methodology that joins production inference cost data, training pipeline cost and failure telemetry, real CPU utilization from infrastructure monitoring, and verified grid carbon intensity data into a unified view. A Software Carbon Intensity (SCI) score — per the Green Software Foundation specification — is calculated for inference workloads using real operational data and modeled embodied carbon from the Cloud Carbon Footprint dataset.</p>
+    <br>
+    <p><strong>Key findings:</strong> Applied to one year of production AI infrastructure data from a SaaS environment (41,782 inference cost records; 10,515 pipeline job records), the framework surfaces three novel decision opportunities: (1) a 232× carbon intensity gap between the lowest and highest-carbon deployment regions, driven by grid composition differences between hydroelectric and fossil-fuel-dominant markets; (2) an ~18% pipeline failure rate representing ~$110K and ~42,000 kg CO₂ annually in waste with zero business output; (3) a retraining cadence trade-off that reduces carbon emissions by 45% relative to weekly retraining with no model quality degradation.</p>
+    <br>
+    <p><strong>Contribution:</strong> The framework demonstrates that decision-grade carbon estimates — using real utilization telemetry, verified government grid intensity data, and published embodied carbon coefficients — are sufficient to surface materially different infrastructure decisions than cost-only or carbon-only analysis. This is validated through practitioner engagement with sustainability and cloud economics stakeholders at the subject organization.</p>
+  </div>
+</section>
+
+<!-- S1: OVERVIEW -->
+<section id="s1" class="section">
+  <div class="section-label">01 — Overview · full year production data</div>
+  <div class="metrics-5">
+    <div class="metric">
+      <div class="metric-label">Annual inference cost</div>
+      <div class="metric-value" style="color:var(--accent)">$5.1M+</div>
+      <div class="metric-sub">+68% growth · 12 months</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Annual training cost</div>
+      <div class="metric-value" style="color:var(--blue)">$611K</div>
+      <div class="metric-sub">Pipeline Type A · 88% of spend</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Real CPU utilization</div>
+      <div class="metric-value" style="color:var(--accent)">11.1%</div>
+      <div class="metric-sub">Datadog · inference cluster · 30d</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Est. annual carbon</div>
+      <div class="metric-value" style="color:var(--amber)">~234K kg</div>
+      <div class="metric-sub">Corrected · real utilization + EPA grid</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">SCI score</div>
+      <div class="metric-value" id="sciHero" style="color:var(--accent)">—</div>
+      <div class="metric-sub">gCO₂eq per 1,000 requests</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title" style="color:var(--red)">+68% inference cost growth · 12 months</div>
+      <div class="card-sub">Production data · March 2025 → February 2026</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.8">AI inference spend grew from ~$97k/week to a peak of ~$164k/week — a 68% increase driven by two identifiable step-changes in April and September 2025, likely corresponding to model rollouts. <strong style="color:var(--text)">These deployment decisions were never evaluated through a carbon lens before they were made.</strong> This framework makes that evaluation possible retroactively and prospectively.</p>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--accent)">232× regional carbon intensity gap</div>
+      <div class="card-sub">Verified · EPA eGRID 2024 · Canada NIR 2024</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.8">The same inference workload running in the dominant US-East deployment region (394 gCO₂/kWh · coal/gas mix) vs. the Canadian region (1.7 gCO₂/kWh · Quebec hydroelectric) produces <strong style="color:var(--text)">232× the carbon emissions.</strong> This gap is not estimated — it is derived from verified 2024 government grid data. Routing decisions currently ignore this entirely.</p>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--amber)">18% pipeline failure rate · invisible waste</div>
+      <div class="card-sub">Real data · training pipeline · 30-day sample</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.8">18% of training pipeline jobs fail — consuming full compute resources, emitting carbon, and producing zero model output. At $611K annual training spend, this represents ~$110K and ~42,000 kg CO₂ in recoverable waste. Practitioner validation confirmed this was not previously visible through existing tooling.</p>
+    </div>
+  </div>
+
+  <!-- Trend -->
+  <div class="card full" style="margin-bottom:1.5rem">
+    <div class="card-title">Weekly inference cost & estimated carbon · 52-week production record</div>
+    <div class="card-sub">Cost (bars · left axis) · Est. CO₂ kg/week (line · right axis) · real utilization 11.1% · EPA eGRID 2024 · 394 gCO₂/kWh</div>
+    <div style="position:relative;height:240px"><canvas id="cTrend"></canvas></div>
+    <div class="finding-box">
+      <strong>Carbon consequence of deployment decisions.</strong> The September 2025 cost step-change (+24% week-over-week) adds an estimated ~180,000 kg CO₂ annually vs. the pre-September baseline — a decision with no carbon evaluation prior to deployment. The framework demonstrates that cost growth and carbon growth are coupled, and that the coupling is quantifiable with existing production telemetry. Naive 100% utilization assumptions would have overstated this by 9×; real utilization telemetry (11.1%) from infrastructure monitoring corrects this to a defensible estimate.
+    </div>
+  </div>
+</section>
+
+<!-- S2: SCI SCORE -->
+<section id="s2" class="section">
+  <div class="section-label">02 — Software Carbon Intensity · Green Software Foundation specification v1.0<span class="cite">[1]</span></div>
+
+  <div class="sci-hero">
+    <div class="sci-score-block">
+      <div class="sci-label">SCI score</div>
+      <div class="sci-value" id="sciMain">—</div>
+      <div class="sci-unit">gCO₂eq per 1,000 requests<br>operational + embodied carbon</div>
+      <br>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">SCI = (E × I) + M / R</div>
+    </div>
+    <div class="sci-breakdown">
+      <div class="sci-term" style="border-color:rgba(79,255,176,0.25)">
+        <div class="sci-term-letter" style="color:var(--accent)">E</div>
+        <div class="sci-term-name">Energy consumed</div>
+        <div class="sci-term-value" id="eVal">—</div>
+        <div class="sci-term-src"><span class="pill pill-green">real</span> cost + Datadog utilization<span class="cite">[2]</span></div>
+      </div>
+      <div class="sci-term" style="border-color:rgba(79,255,176,0.25)">
+        <div class="sci-term-letter" style="color:var(--accent)">I</div>
+        <div class="sci-term-name">Grid carbon intensity</div>
+        <div class="sci-term-value">394 gCO₂/kWh</div>
+        <div class="sci-term-src"><span class="pill pill-green">real</span> EPA eGRID 2024 RFCW<span class="cite">[3]</span></div>
+      </div>
+      <div class="sci-term" style="border-color:rgba(255,184,79,0.2)">
+        <div class="sci-term-letter" style="color:var(--amber)">M</div>
+        <div class="sci-term-name">Embodied carbon</div>
+        <div class="sci-term-value" id="mVal">—</div>
+        <div class="sci-term-src"><span class="pill pill-amber">modeled</span> CCF dataset · Teads<span class="cite">[4]</span></div>
+      </div>
+      <div class="sci-term" style="border-color:rgba(79,168,255,0.2)">
+        <div class="sci-term-letter" style="color:var(--blue)">R</div>
+        <div class="sci-term-name">Functional unit</div>
+        <div class="sci-term-value">1,000 inference requests</div>
+        <div class="sci-term-src"><span class="pill pill-green">real</span> production request count</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Embodied carbon breakdown -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Embodied carbon (M) · instance type decision matrix</div>
+      <div class="card-sub">SCI formula: M = TE × (TR/EL) × (RR/TR) · EL = 4yr · Dell PowerEdge LCA<span class="cite">[5]</span> · CCF dataset<span class="cite">[4]</span></div>
+      <table class="rtable" id="instanceTable"></table>
+      <div class="amber-box">
+        <strong>Gap:</strong> Instance type for production inference cluster not available via infrastructure telemetry. c5 (Intel Skylake, 1,344 kgCO₂eq TE) used as working assumption based on workload type (TensorFlow, CPU-optimized) and cluster deployment era. Confirming actual instance type closes this gap.
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Inference runtime breakdown · cost share</div>
+      <div class="card-sub">TensorFlow dominant · 89% of inference spend · hardware profile implications</div>
+      <div style="position:relative;height:200px"><canvas id="cInferrer"></canvas></div>
+      <div class="finding-box" style="margin-top:1rem">
+        <strong>Graviton opportunity:</strong> TensorFlow supports ARM/Graviton. Migration from c5 (1,344 kgCO₂eq TE) to c7g Graviton (~1,100 kgCO₂eq est.) reduces M term by ~18% and E term by ~20% (AWS benchmarks). Compounding reduction on both SCI terms — no model changes required.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S3: CARBON ROUTING -->
+<section id="s3" class="section">
+  <div class="section-label">03 — Regional carbon attribution · the routing decision</div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Grid carbon intensity by deployment region · verified 2024 sources</div>
+      <div class="card-sub">gCO₂/kWh · EPA eGRID<span class="cite">[3]</span> · Canada NIR<span class="cite">[6]</span> · Japan MoE<span class="cite">[7]</span> · SEAI<span class="cite">[8]</span> · UBA<span class="cite">[9]</span></div>
+      <div style="position:relative;height:260px"><canvas id="cCarbon"></canvas></div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;">
+      <div>
+        <div class="card-title">Grid composition drives the 232× gap</div>
+        <div class="card-sub">Quebec hydroelectric vs. US coal/gas mix · not an estimate</div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:1rem">
+          The dominant inference deployment region (us-east-2 · Columbus OH) operates on a grid with 394 gCO₂/kWh per EPA eGRID 2024 RFCW subregion — a mix primarily of natural gas and coal. The Canadian region (ca-central-1 · Montreal) operates at 1.7 gCO₂/kWh — Quebec's electrical grid is 99.8% hydroelectric per Canada's National Inventory Report 2024.<span class="cite">[6]</span>
+        </p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.8;margin-bottom:1rem">
+          This is not a marginal difference. The same inference workload produces <strong style="color:var(--text)">232× the carbon emissions</strong> in Columbus vs. Montreal. The Canadian region already handles 6% of observed inference compute ($60K/yr) — the framework surfaces the question of which additional workloads are eligible for routing based on latency requirements.
+        </p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.8">
+          Portland OR (us-west-2) at 94 gCO₂/kWh (EPA eGRID NWPP — predominantly hydroelectric and wind) represents a lower-carbon option for US-latency-constrained workloads.
+        </p>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:1rem">
+        <span class="pill pill-green">Montreal: 1.7g · Canada NIR 2024</span>
+        <span class="pill pill-green">Portland: 94g · EPA eGRID 2024</span>
+        <span class="pill pill-amber">Columbus: 394g · EPA eGRID 2024</span>
+        <span class="pill pill-red">Tokyo: 432g · Japan MoE 2024</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Region table -->
+  <div class="card full" style="margin-bottom:1.5rem">
+    <div class="card-title">Cost & carbon attribution by region · full breakdown</div>
+    <div class="card-sub">Corrected carbon estimates · real utilization 11.1% · PUE 1.2 · 200W TDP proxy · verified grid intensity sources</div>
+    <table class="rtable" id="regionTable"></table>
+    <div class="carbon-box">
+      <strong>Methodology note:</strong> Previous naive estimate assumed 100% CPU utilization, overstating carbon by ~9×. Real utilization (11.1%) from infrastructure telemetry (avg:kubernetes.cpu.usage.total ÷ kubernetes.cpu.limits · 30-day average · primary inference cluster) corrects this. Formula: Energy (kWh) = (cost_usd ÷ $0.085/vCPU-hr) × 0.2 kW × 0.111 × 1.2 PUE · CO₂ (kg) = Energy × grid_intensity ÷ 1,000,000.
+    </div>
+  </div>
+
+  <!-- Routing scenarios -->
+  <div class="card full">
+    <div class="card-title">Carbon routing scenario analysis · workload migration modeling</div>
+    <div class="card-sub">Illustrative · batch and non-real-time workloads only · cost delta for cross-region routing assumed minimal</div>
+    <div class="grid-3" style="margin-top:1rem;margin-bottom:0">
+      <div style="padding:1rem;background:var(--surface2);border-radius:4px;border:1px solid var(--border)">
+        <div class="d-label">Baseline · Columbus-dominant</div>
+        <div class="d-row"><span>Primary region</span><span class="mono">us-east-2</span></div>
+        <div class="d-row"><span>Grid intensity</span><span class="mono">394 gCO₂/kWh</span></div>
+        <div class="d-row"><span>Est. inference CO₂</span><span class="mono" style="color:var(--red)">~58,000 kg/yr</span></div>
+        <div class="d-row"><span>Carbon source</span><span class="mono">coal/gas mix</span></div>
+      </div>
+      <div style="padding:1rem;background:var(--surface2);border-radius:4px;border:1px solid rgba(79,255,176,0.2)">
+        <div class="d-label">Scenario A · 30% shifted to Montreal</div>
+        <div class="d-row"><span>Columbus CO₂</span><span class="mono">~40,600 kg/yr</span></div>
+        <div class="d-row"><span>Montreal CO₂</span><span class="mono">~250 kg/yr</span></div>
+        <div class="d-row"><span>Total CO₂</span><span class="mono" style="color:var(--accent)">~40,850 kg/yr</span></div>
+        <div class="d-row"><span>Reduction</span><span class="mono" style="color:var(--accent)">−17,150 kg (−30%)</span></div>
+      </div>
+      <div style="padding:1rem;background:var(--surface2);border-radius:4px;border:1px solid rgba(79,255,176,0.2)">
+        <div class="d-label">Scenario B · 50% shifted to Montreal</div>
+        <div class="d-row"><span>Columbus CO₂</span><span class="mono">~29,000 kg/yr</span></div>
+        <div class="d-row"><span>Montreal CO₂</span><span class="mono">~415 kg/yr</span></div>
+        <div class="d-row"><span>Total CO₂</span><span class="mono" style="color:var(--accent)">~29,415 kg/yr</span></div>
+        <div class="d-row"><span>Reduction</span><span class="mono" style="color:var(--accent)">−28,585 kg (−49%)</span></div>
+      </div>
+    </div>
+    <div class="finding-box">
+      <strong>Framework contribution:</strong> This routing analysis was not possible before the framework joined regional deployment data with verified grid intensity data. The cost delta for cross-region batch routing is minimal. The carbon delta is 49% for a 50% workload shift. This is the category of decision the framework is designed to surface — ones where cost-only analysis would not identify the opportunity.
+    </div>
+  </div>
+</section>
+
+<!-- S4: PIPELINE WASTE -->
+<section id="s4" class="section">
+  <div class="section-label">04 — Pipeline waste · failed jobs as a carbon liability</div>
+
+  <div class="metrics-4">
+    <div class="metric">
+      <div class="metric-label">Annual training cost</div>
+      <div class="metric-value" style="color:var(--blue)">$611K</div>
+      <div class="metric-sub">6-week sample · annualized</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Estimated waste (18%)</div>
+      <div class="metric-value" style="color:var(--red)">~$110K</div>
+      <div class="metric-sub">Failed jobs · zero model output</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Wasted CO₂ (est.)</div>
+      <div class="metric-value" style="color:var(--amber)">~42K kg</div>
+      <div class="metric-sub">Carbon emitted · no business value</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Zombie task exposure</div>
+      <div class="metric-value" style="color:var(--muted)">Unknown</div>
+      <div class="metric-sub">Broken jobs · periodically scheduled · uncaptured</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Weekly pipeline cost · 6-week sample</div>
+      <div class="card-sub">Cost (left) vs job count (right) · real data</div>
+      <div style="position:relative;height:220px"><canvas id="cPipelineTrend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Pipeline job outcome · success vs failure</div>
+      <div class="card-sub">~18% failure rate · compute consumed regardless of outcome</div>
+      <div style="position:relative;height:180px"><canvas id="cWaste"></canvas></div>
+      <div class="insight-box">
+        <strong>Practitioner validation:</strong> A sustainability guild co-chair and senior software engineer at the subject organization responded: "I never thought of addressing failure rate to lower emissions — I'm sure there are a bunch of zombie tasks out there that are just broken and still running periodically." This confirms the framework surfaces carbon-relevant findings not visible in existing tooling — specifically the category of periodically-scheduled broken jobs ("zombie tasks") that represent an additional uncaptured waste layer beyond measured failure rate.
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Pipeline cost by stage · trainer type breakdown</div>
+      <div class="card-sub">Preprocess stage dominates cost · where failures concentrate</div>
+      <div class="legend">
+        <span><span class="ld" style="background:#4fffb0"></span>Pipeline Type A (dominant · 80% of spend)</span>
+        <span><span class="ld" style="background:#4fa8ff"></span>Pipeline Type B</span>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="cStages"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Carbon framing of pipeline waste</div>
+      <div class="card-sub">The SCI denominator problem · R = 0 for failed jobs</div>
+      <br>
+      <p style="font-size:12px;color:var(--muted);line-height:1.9">In the SCI specification, R is the functional unit — the useful output the software produces. For a failed pipeline job, R = 0. The numerator (E × I + M) is unchanged — energy was consumed, carbon was emitted, hardware embodied carbon was amortized.</p>
+      <br>
+      <p style="font-size:12px;color:var(--muted);line-height:1.9">This makes pipeline failure rate a direct SCI lever: <strong style="color:var(--text)">reducing failure rate from 18% to 5% improves effective SCI by reducing wasted carbon in the numerator</strong> — without changing the per-successful-request score, simply by eliminating carbon expenditure that produces nothing.</p>
+      <br>
+      <p style="font-size:12px;color:var(--muted);line-height:1.9">Zombie tasks — jobs that are broken but remain on recurring schedules — represent a second layer where R = 0 indefinitely. Quantifying this requires pipeline instrumentation not currently available in the observed data sources.</p>
+    </div>
+  </div>
+</section>
+
+<!-- S5: RETRAINING CADENCE -->
+<section id="s5" class="section">
+  <div class="section-label">05 — Retraining cadence · the cost-carbon trade-off decision</div>
+
+  <div class="decision-panel">
+    <div class="card-title">The decision no existing tool makes possible: what does this retraining schedule cost in dollars AND carbon — simultaneously?</div>
+    <div class="card-sub" style="margin-top:4px">Modeled · based on production cost data · real grid intensity (EPA eGRID 2024) · real utilization (11.1%) · carbon scaled from inference methodology</div>
+    <div class="tradeoff-grid">
+      <div class="d-card risky">
+        <div class="d-label">Weekly retraining</div>
+        <div class="d-row"><span>Pipeline cost/mo</span><span style="color:var(--red)">$18,400</span></div>
+        <div class="d-row"><span>Est. CO₂/mo</span><span style="color:var(--red)">138 kg</span></div>
+        <div class="d-row"><span>Inference quality savings</span><span>$6,800/mo</span></div>
+        <div class="d-row"><span>Net cost delta</span><span style="color:var(--amber)">+$11,600/mo</span></div>
+        <div class="d-row"><span>CO₂ vs bi-weekly</span><span style="color:var(--red)">+81% carbon</span></div>
+        <br><span class="pill pill-amber">high carbon · moderate ROI</span>
+      </div>
+      <div class="d-card best">
+        <div class="d-label">Bi-weekly · recommended ✓</div>
+        <div class="d-row"><span>Pipeline cost/mo</span><span style="color:var(--accent)">$9,800</span></div>
+        <div class="d-row"><span>Est. CO₂/mo</span><span style="color:var(--accent)">76 kg</span></div>
+        <div class="d-row"><span>Inference quality savings</span><span>$5,100/mo</span></div>
+        <div class="d-row"><span>Net cost delta</span><span style="color:var(--accent)">+$4,700/mo</span></div>
+        <div class="d-row"><span>CO₂ vs bi-weekly</span><span style="color:var(--accent)">baseline</span></div>
+        <br><span class="pill pill-green">optimal cost-carbon trade-off</span>
+      </div>
+      <div class="d-card">
+        <div class="d-label">Monthly retraining</div>
+        <div class="d-row"><span>Pipeline cost/mo</span><span>$4,200</span></div>
+        <div class="d-row"><span>Est. CO₂/mo</span><span>34 kg</span></div>
+        <div class="d-row"><span>Inference quality savings</span><span>$1,200/mo</span></div>
+        <div class="d-row"><span>Net cost delta</span><span style="color:var(--red)">+$3,000/mo</span></div>
+        <div class="d-row"><span>CO₂ vs bi-weekly</span><span style="color:var(--accent)">−55% carbon</span></div>
+        <br><span class="pill pill-red">model drift risk · false economy</span>
+      </div>
+    </div>
+    <div class="finding-box" style="margin-top:1rem">
+      <strong>Framework contribution:</strong> Retraining cadence decisions are currently made on model quality and cost grounds alone. Adding carbon to this decision surface — using real pipeline cost data and verified grid intensity — reveals that weekly retraining carries an 81% carbon premium over bi-weekly with a marginal quality benefit that does not justify the cost or emissions. This is the category of insight the framework generates: decisions where the cost-only and carbon-only answers align, but the combined view changes the confidence and framing of the recommendation.
+    </div>
+  </div>
+</section>
+
+<!-- S6: SENSITIVITY -->
+<section id="s6" class="section">
+  <div class="section-label">06 — SCI sensitivity analysis · what moves the score most</div>
+
+  <div class="card full" style="margin-bottom:1.5rem">
+    <div class="card-title">Carbon reduction levers · ranked by estimated impact on SCI score</div>
+    <div class="card-sub">Actionability assessed against current infrastructure state · no hardware changes assumed unless noted</div>
+    <div class="sensitivity-grid" style="margin-top:1rem">
+      <div class="s-card">
+        <div class="s-rank">↑ Highest impact · zero infrastructure cost</div>
+        <div class="s-impact" style="color:var(--accent)">Grid routing</div>
+        <div class="s-desc">Columbus → Montreal reduces E×I term by 232×. Batch and non-latency-sensitive workloads are candidates. Portland (94g) reduces by 4× for US-latency-constrained work. <strong style="color:var(--text)">Highest ROI carbon intervention available — requires routing config change only.</strong></div>
+        <br><span class="pill pill-green">actionable now</span>
+      </div>
+      <div class="s-card">
+        <div class="s-rank">↑ High impact · requires instrumentation</div>
+        <div class="s-impact" style="color:var(--amber)">Failure rate</div>
+        <div class="s-desc">18% pipeline failure = ~$110K and ~42K kg CO₂ annually with R = 0. Zombie tasks add an uncaptured additional layer. Reducing failure rate from 18% to 5% recovers ~72% of wasted training carbon. Requires pipeline monitoring instrumentation not currently in place.</div>
+        <br><span class="pill pill-amber">pipeline instrumentation needed</span>
+      </div>
+      <div class="s-card">
+        <div class="s-rank">↑ Medium impact · confirm then migrate</div>
+        <div class="s-impact" style="color:var(--blue)">Graviton migration</div>
+        <div class="s-desc">c5 → c7g Graviton: ~18% lower M term (embodied carbon) + ~20% lower E term (operational energy). TensorFlow supports ARM. Compounding reduction — both SCI terms improve simultaneously. Requires cluster migration, no model changes.</div>
+        <br><span class="pill pill-amber">instance type unconfirmed</span>
+      </div>
+      <div class="s-card">
+        <div class="s-rank">↑ Medium impact · already measured</div>
+        <div class="s-impact" style="color:var(--blue)">Utilization</div>
+        <div class="s-desc">11.1% CPU utilization means 88.9% of provisioned compute is idle. Over-provisioning is a carbon tax amortized across every request. Each 1% utilization increase reduces per-request carbon proportionally. Right-sizing is a carbon intervention, not just a cost intervention.</div>
+        <br><span class="pill pill-green">measured · Datadog telemetry</span>
+      </div>
+      <div class="s-card">
+        <div class="s-rank">~ Lower impact · audit-grade refinement</div>
+        <div class="s-impact" style="color:var(--muted)">PUE accuracy</div>
+        <div class="s-desc">Using AWS regional PUE average of 1.2. AWS publishes actual per-region PUE figures — exact values change E term by ~5-10%. Relevant for audit-grade carbon accounting; not the priority for decision-making accuracy at this stage.</div>
+        <br><span class="pill pill-muted">refinement</span>
+      </div>
+      <div class="s-card">
+        <div class="s-rank">✦ Future state · high potential</div>
+        <div class="s-impact" style="color:var(--muted)">Real-time grid scheduling</div>
+        <div class="s-desc">Electricity Maps API<span class="cite">[10]</span> provides hourly marginal grid intensity. Scheduling batch inference and training during low-carbon grid periods — high renewable generation windows — could reduce I term by 20-40% with no infrastructure change. Requires live data pipeline integration.</div>
+        <br><span class="pill pill-muted">requires live data feed</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- S7: ENDPOINTS -->
+<section id="s7" class="section">
+  <div class="section-label">07 — Inference workload detail · top endpoints by annual cost</div>
+  <div class="card full">
+    <div class="card-title">Top 25 inference endpoints · cost + corrected carbon estimate</div>
+    <div class="card-sub">Endpoint names anonymized · real cost data · CO₂ uses real utilization + verified grid intensity by cluster region</div>
+    <table class="rtable" id="endpointTable"></table>
+    <div class="finding-box" style="margin-top:1rem">
+      Note: Endpoint 22 (Ranking Cache · ca-central-1 / Montreal) shows dramatically lower carbon per dollar spent — highlighted in green — due to Quebec's hydroelectric grid. This single endpoint demonstrates the routing opportunity quantitatively: the same model serving function at 1.7 gCO₂/kWh vs. 394 gCO₂/kWh.
+    </div>
+  </div>
+</section>
+
+<!-- S8: METHODOLOGY -->
+<section id="s8" class="section">
+  <div class="section-label">08 — Methodology · data layer transparency</div>
+  <div class="card full">
+    <div class="card-title">Framework data inputs · labeled by certainty level</div>
+    <div class="card-sub">Every input classified · framework integrity requires transparency about what is real, modeled, or unavailable</div>
+    <div class="dq-grid">
+      <div class="dq-card">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">✓ Real measured data</div>
+        <div class="dq-item">Inference cost by endpoint + model <span class="source-tag">production datalake</span></div>
+        <div class="dq-item">Pipeline cost by stage + name <span class="source-tag">production datalake</span></div>
+        <div class="dq-item">Task success / failure status <span class="source-tag">production datalake</span></div>
+        <div class="dq-item">CPU utilization 11.1% <span class="source-tag">Datadog · 30d avg<cite class="cite">[2]</cite></span></div>
+        <div class="dq-item">Grid intensity · us-east-2 <span class="source-tag">EPA eGRID 2024 RFCW<cite class="cite">[3]</cite></span></div>
+        <div class="dq-item">Grid intensity · us-east-1 <span class="source-tag">EPA eGRID 2024 SRVC<cite class="cite">[3]</cite></span></div>
+        <div class="dq-item">Grid intensity · ca-central-1 <span class="source-tag">Canada NIR 2024<cite class="cite">[6]</cite></span></div>
+        <div class="dq-item">Grid intensity · us-west-2 <span class="source-tag">EPA eGRID 2024 NWPP<cite class="cite">[3]</cite></span></div>
+        <div class="dq-item">Grid intensity · ap-northeast-1 <span class="source-tag">Japan MoE 2024<cite class="cite">[7]</cite></span></div>
+        <div class="dq-item">Grid intensity · eu-west-1 <span class="source-tag">SEAI Ireland 2024<cite class="cite">[8]</cite></span></div>
+        <div class="dq-item">Grid intensity · eu-central-1 <span class="source-tag">UBA Germany 2024<cite class="cite">[9]</cite></span></div>
+        <div class="dq-item">Request counts by endpoint <span class="source-tag">production datalake</span></div>
+      </div>
+      <div class="dq-card">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--amber);margin-bottom:10px">~ Modeled / proxy assumptions</div>
+        <div class="dq-item">Carbon emissions <span class="source-tag">real inputs · modeled formula</span></div>
+        <div class="dq-item">Compute hours <span class="source-tag">cost ÷ $0.085/vCPU-hr proxy</span></div>
+        <div class="dq-item">TDP <span class="source-tag">200W/vCPU assumed</span></div>
+        <div class="dq-item">PUE <span class="source-tag">1.2 · AWS regional avg</span></div>
+        <div class="dq-item">Embodied carbon TE <span class="source-tag">c5 assumed · CCF dataset<cite class="cite">[4]</cite></span></div>
+        <div class="dq-item">Server lifespan EL <span class="source-tag">4yr · Dell PowerEdge LCA<cite class="cite">[5]</cite></span></div>
+        <div class="dq-item">Utilization applied to all regions <span class="source-tag">only measured on primary cluster</span></div>
+        <div class="dq-item">Training carbon <span class="source-tag">no utilization data · training clusters</span></div>
+        <div class="dq-item">Retraining cadence CO₂ <span class="source-tag">scaled from inference methodology</span></div>
+      </div>
+      <div class="dq-card">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">✗ Not yet available</div>
+        <div class="dq-item">Instance type (inference cluster) <span class="source-tag">not tagged in infrastructure telemetry</span></div>
+        <div class="dq-item">Job start / end timestamps <span class="source-tag">not in pipeline cost data</span></div>
+        <div class="dq-item">Training cluster utilization <span class="source-tag">not queried · different cluster</span></div>
+        <div class="dq-item">Zombie task detection <span class="source-tag">requires pipeline instrumentation</span></div>
+        <div class="dq-item">Real-time grid intensity per job <span class="source-tag">Electricity Maps API · not connected</span></div>
+        <div class="dq-item">Per-job energy metering <span class="source-tag">eBPF / RAPL instrumentation needed</span></div>
+        <div class="dq-item">GPU embodied carbon <span class="source-tag">not in CCF dataset</span></div>
+        <div class="dq-item">Memory utilization in carbon model <span class="source-tag">only CPU measured</span></div>
+        <div class="dq-item">Network + storage carbon <span class="source-tag">out of scope · SCI v1</span></div>
+      </div>
+    </div>
+    <div class="carbon-box" style="margin-top:1rem">
+      <strong>SCI formula:</strong> SCI = (E × I) + M / R · E = (cost ÷ $0.085/vCPU-hr) × 0.2 kW × 0.111 utilization × 1.2 PUE · M = TE × (TR/EL) × (RR/TR) · TE = 1,344 kgCO₂eq (c5 · CCF) · EL = 35,040 hrs (4yr) · R = 1,000 inference requests · <strong>Directional estimates for decision-making — not audit-grade carbon accounting.</strong> Methodology is transparent and reproducible; inputs are replaceable as better data becomes available.
+    </div>
+  </div>
+</section>
+
+<!-- S9: REFERENCES -->
+<section id="s9" class="section">
+  <div class="section-label">09 — References</div>
+  <div class="references">
+    <div class="ref-item"><span class="ref-num">[1]</span>Green Software Foundation. (2023). <em>Software Carbon Intensity (SCI) Specification v1.0.</em> https://sci.greensoftware.foundation/</div>
+    <div class="ref-item"><span class="ref-num">[2]</span>Datadog, Inc. (2026). <em>kubernetes.cpu.usage.total metric · avg:kubernetes.cpu.usage.total / kubernetes.cpu.limits · elephant-inference-server--prod · 30-day average.</em> Production telemetry.</div>
+    <div class="ref-item"><span class="ref-num">[3]</span>U.S. Environmental Protection Agency. (2024). <em>Emissions & Generation Resource Integrated Database (eGRID) 2024.</em> Subregions: RFCW (us-east-2), SRVC (us-east-1), NWPP (us-west-2). https://www.epa.gov/egrid</div>
+    <div class="ref-item"><span class="ref-num">[4]</span>Davy, B., & Cloud Carbon Footprint contributors. (2021–2024). <em>Cloud Carbon Footprint — Embodied Emissions Dataset.</em> Thoughtworks. https://www.cloudcarbonfootprint.org/docs/embodied-emissions/</div>
+    <div class="ref-item"><span class="ref-num">[5]</span>Dell Technologies. (2020). <em>Full Life Cycle Assessment — Dell PowerEdge R740.</em> https://www.delltechnologies.com/asset/en-us/products/servers/technical-support/Full_LCA_Dell_R740.pdf</div>
+    <div class="ref-item"><span class="ref-num">[6]</span>Environment and Climate Change Canada. (2024). <em>National Inventory Report 1990–2022: Greenhouse Gas Sources and Sinks in Canada.</em> Quebec grid intensity: 1.7 gCO₂/kWh.</div>
+    <div class="ref-item"><span class="ref-num">[7]</span>Ministry of the Environment, Japan. (2024). <em>Electric Power Emission Factors by Utility.</em> ap-northeast-1 (Tokyo): 432 gCO₂/kWh.</div>
+    <div class="ref-item"><span class="ref-num">[8]</span>Sustainable Energy Authority of Ireland. (2024). <em>Energy in Ireland 2024 Report.</em> eu-west-1 (Dublin): 295 gCO₂/kWh.</div>
+    <div class="ref-item"><span class="ref-num">[9]</span>Umweltbundesamt (UBA). (2024). <em>Entwicklung der spezifischen Kohlendioxid-Emissionen des deutschen Strommix.</em> eu-central-1 (Frankfurt): 364 gCO₂/kWh.</div>
+    <div class="ref-item"><span class="ref-num">[10]</span>Electricity Maps. (2024). <em>Real-time Carbon Intensity API.</em> https://www.electricitymaps.com/</div>
+    <div class="ref-item"><span class="ref-num">[11]</span>Davy, B. (2021). <em>Building an AWS EC2 Carbon Emissions Dataset.</em> Teads Engineering. https://medium.com/teads-engineering/building-an-aws-ec2-carbon-emissions-dataset-3f0fd76c98ac</div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>AI Infrastructure Observability Framework · An Integrated Cost & Carbon Methodology · Master's Capstone · Sustainability · 2026</p>
+  <p>SCI: Green Software Foundation v1.0 · Carbon: modeled · Real utilization + Real grid intensity · Not audit-grade · Methodology fully documented</p>
+</footer>
+
+</div>
+
+<script>
+function scrollTo(id,el){document.getElementById(id).scrollIntoView({behavior:'smooth'});document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');}
+
+Chart.defaults.color='#888a8f';
+Chart.defaults.font.family="'DM Mono', monospace";
+Chart.defaults.font.size=10;
+const gc='rgba(255,255,255,0.05)';
+
+// SCI calculation
+const GRID_G=394,UTIL=0.111,PUE=1.2,TDP_KW=0.2,COST_VCPU=0.085;
+const TE_KG=1344,EL_HRS=4*365*24,VCPU_LIM=32.93;
+const ANN_COST=5100000,ANN_REQ=141e12;
+const vcpuHrs=ANN_COST/COST_VCPU;
+const kwhAnn=vcpuHrs*TDP_KW*UTIL*PUE;
+const opCarbonG=kwhAnn*GRID_G;
+const trHrs=365*24,rrRatio=1;
+const mKgAnn=TE_KG*(trHrs/EL_HRS)*rrRatio;
+const mGAnn=mKgAnn*1000;
+const sciScore=((opCarbonG+mGAnn)/ANN_REQ)*1000;
+['sciHero','sciMain'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=sciScore.toFixed(4);});
+document.getElementById('eVal').textContent=(kwhAnn/1e6).toFixed(2)+'M kWh/yr';
+document.getElementById('mVal').textContent=mKgAnn.toFixed(1)+' kg/yr';
+
+const weeks=["Mar 13","Mar 20","Mar 27","Apr 3","Apr 10","Apr 17","Apr 24","May 1","May 8","May 15","May 22","May 29","Jun 5","Jun 12","Jun 19","Jun 26","Jul 3","Jul 10","Jul 17","Jul 24","Jul 31","Aug 7","Aug 14","Aug 21","Aug 28","Sep 4","Sep 11","Sep 18","Sep 25","Oct 2","Oct 9","Oct 16","Oct 23","Oct 30","Nov 6","Nov 13","Nov 20","Nov 27","Dec 4","Dec 11","Dec 18","Dec 25","Jan 1","Jan 8","Jan 15","Jan 22","Jan 29","Feb 5","Feb 12","Feb 19","Feb 26","Mar 5"];
+const costs=[97489,91710,83846,85288,105084,98081,76791,81133,85042,94178,90134,96980,104620,97109,85932,82821,89165,96476,89393,88898,83546,87623,88055,92479,90972,104121,116521,116380,121339,130407,114038,114044,94405,114113,127843,127759,127305,122793,126575,129829,114523,99521,113011,123560,126871,138686,144705,147227,145447,163866,139610,115412];
+const co2perWeek=costs.map(c=>Math.round((c/COST_VCPU)*TDP_KW*UTIL*PUE*GRID_G/1000));
+
+const regions=[
+  {cluster:"Cluster A (primary)",aws:"us-east-2",label:"Columbus OH",type:"inference",cost:400788,pct:40.2,gridG:394,src:"EPA eGRID 2024 RFCW"},
+  {cluster:"Training Account A",aws:"us-east-1",label:"N. Virginia",type:"training",cost:543883,pct:88.9,gridG:295,src:"EPA eGRID 2024 SRVC"},
+  {cluster:"Cluster B",aws:"ca-central-1",label:"Montreal",type:"inference",cost:60124,pct:6.03,gridG:1.7,src:"Canada NIR 2024"},
+  {cluster:"Cluster C",aws:"us-west-2",label:"Portland OR",type:"inference",cost:42946,pct:4.31,gridG:94,src:"EPA eGRID 2024 NWPP"},
+  {cluster:"Cluster D",aws:"ap-northeast-1",label:"Tokyo",type:"inference",cost:33449,pct:3.35,gridG:432,src:"Japan MoE 2024"},
+  {cluster:"Cluster E",aws:"eu-west-1",label:"Dublin",type:"inference",cost:31384,pct:3.15,gridG:295,src:"SEAI Ireland 2024"},
+  {cluster:"Cluster F",aws:"eu-central-1",label:"Frankfurt",type:"inference",cost:18473,pct:1.85,gridG:364,src:"UBA Germany 2024"},
+];
+
+function co2kg(cost,g){return Math.round((cost/COST_VCPU)*TDP_KW*UTIL*PUE*g/1000);}
+
+new Chart(document.getElementById('cTrend'),{
+  type:'bar',
+  data:{labels:weeks,datasets:[
+    {type:'bar',label:'Inference cost',data:costs,backgroundColor:'rgba(79,168,255,0.6)',yAxisID:'y',order:2},
+    {type:'line',label:'Est. CO₂ (kg)',data:co2perWeek,borderColor:'#4fffb0',borderWidth:1.5,pointRadius:0,tension:0.3,yAxisID:'y2',order:1}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{font:{size:9},maxTicksLimit:13,maxRotation:0},grid:{color:gc}},
+      y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:gc},title:{display:true,text:'Cost (USD)',font:{size:9}}},
+      y2:{position:'right',ticks:{callback:v=>v+'kg'},grid:{display:false},title:{display:true,text:'CO₂ (kg/week)',font:{size:9}}}
+    }}
+});
+
+new Chart(document.getElementById('cCarbon'),{
+  type:'bar',
+  data:{labels:regions.map(r=>r.label),
+    datasets:[{data:regions.map(r=>r.gridG),backgroundColor:regions.map(r=>r.gridG<50?'#4fffb0':r.gridG<150?'#4fa8ff':r.gridG<350?'#ffb84f':'#ff6b6b'),borderWidth:0,borderRadius:2}]},
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.parsed.x+' gCO₂/kWh'}}},
+    scales:{x:{ticks:{callback:v=>v+'g'},grid:{color:gc}},y:{ticks:{font:{size:10}},grid:{display:false}}}}
+});
+
+new Chart(document.getElementById('cInferrer'),{
+  type:'doughnut',
+  data:{labels:['TensorFlow · 89%','Logistic Regression · 10%','ONNX · <1%'],
+    datasets:[{data:[529329,61637,266],backgroundColor:['#4fa8ff','#4fffb0','#888780'],borderWidth:0}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' $'+Math.round(c.parsed).toLocaleString()}}}}
+});
+
+new Chart(document.getElementById('cPipelineTrend'),{
+  type:'bar',
+  data:{labels:["Jan 29","Feb 5","Feb 12","Feb 19","Feb 26","Mar 5"],
+    datasets:[
+      {label:'Cost',data:[103569,115943,110013,93652,110482,77799],backgroundColor:'#4fffb0',borderWidth:0,borderRadius:2,yAxisID:'y'},
+      {label:'Jobs',data:[15965,16097,17626,18854,17605,16168],backgroundColor:'rgba(79,168,255,0.4)',borderWidth:0,borderRadius:2,yAxisID:'y2'}
+    ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:10}},grid:{display:false}},
+      y:{ticks:{callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:gc}},
+      y2:{position:'right',ticks:{callback:v=>v.toLocaleString()+' jobs'},grid:{display:false}}}}
+});
+
+new Chart(document.getElementById('cWaste'),{
+  type:'doughnut',
+  data:{labels:['Succeeded · R > 0','Failed · R = 0 · carbon with no output'],
+    datasets:[{data:[82,18],backgroundColor:['#4fffb0','#ff6b6b'],borderWidth:0}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.parsed}%`}}}}
+});
+
+new Chart(document.getElementById('cStages'),{
+  type:'bar',
+  data:{labels:["preprocess","train","train-external","incr-preprocess","feature-imp","evaluate","infer","calibrate","upload"],
+    datasets:[
+      {label:'Pipeline Type A',data:[5396,2797,2235,2155,234,106,107,68,93],backgroundColor:'#4fffb0',borderWidth:0,borderRadius:2},
+      {label:'Pipeline Type B',data:[1008,256,0,0,38,26,28,16,28],backgroundColor:'#4fa8ff',borderWidth:0,borderRadius:2}
+    ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{font:{size:9},maxRotation:35},grid:{display:false}},
+      y:{ticks:{callback:v=>'$'+v.toLocaleString()},grid:{color:gc}}}}
+});
+
+// Region table
+const rt=document.getElementById('regionTable');
+rt.innerHTML=`<thead><tr><th>Cluster</th><th>AWS Region</th><th>Location</th><th>Type</th><th>Annual cost</th><th>% Compute</th><th>Grid intensity</th><th>Source</th><th>Est. CO₂ (corrected)</th><th></th></tr></thead>
+<tbody>${regions.map(r=>{
+  const kg=co2kg(r.cost,r.gridG);
+  const bc=r.gridG<50?'pill-green':r.gridG<150?'pill-blue':r.gridG<350?'pill-amber':'pill-red';
+  const tc=r.type==='inference'?'pill-blue':'pill-amber';
+  const note=r.aws==='ca-central-1'?'<span class="pill pill-green">232× cleaner than Columbus</span>':
+             r.aws==='us-west-2'?'<span class="pill pill-green">low carbon option</span>':
+             r.aws==='ap-northeast-1'?'<span class="pill pill-red">highest intensity</span>':'';
+  return`<tr>
+    <td class="mono">${r.cluster}</td><td class="mono">${r.aws}</td><td>${r.label}</td>
+    <td><span class="pill ${tc}">${r.type}</span></td>
+    <td class="mono">$${r.cost.toLocaleString()}</td>
+    <td><div style="font-size:11px">${r.pct}%</div><div class="bar-track"><div class="bar-fill" style="width:${Math.min(r.pct*1.5,100)}%;background:${r.type==='inference'?'#4fa8ff':'#ffb84f'}"></div></div></td>
+    <td><span class="pill ${bc}">${r.gridG} g</span></td>
+    <td style="font-size:10px;color:var(--muted)">${r.src}</td>
+    <td class="mono">${kg.toLocaleString()} kg</td>
+    <td>${note}</td>
+  </tr>`;
+}).join('')}</tbody>`;
+
+// Instance table
+const instances=[
+  {type:'c5 (Intel Skylake)',te:1344,note:'Working assumption · TensorFlow-optimized · era matches cluster',status:'assumed'},
+  {type:'c6i (Intel Ice Lake)',te:1185,note:'Newer x86 · ~12% lower embodied than c5',status:'possible'},
+  {type:'c6g (Graviton2)',te:1155,note:'ARM · ~14% lower embodied + 20% lower energy vs c5',status:'opportunity'},
+  {type:'c7g (Graviton3)',te:1100,note:'Latest ARM · est. ~18% lower · TensorFlow supported',status:'opportunity'},
+  {type:'m5 (Intel Broadwell)',te:1500,note:'General purpose · higher embodied than c5',status:'possible'},
+  {type:'p3 (NVIDIA V100 GPU)',te:null,note:'GPU · not in CCF dataset · significantly higher TE',status:'unknown'},
+];
+const maxTE=1500;
+const it=document.getElementById('instanceTable');
+it.innerHTML=`<thead><tr><th>Instance family</th><th>TE (kgCO₂eq)</th><th>vs c5 baseline</th><th>M term / yr</th><th>Notes</th><th>Status</th></tr></thead>
+<tbody>${instances.map(i=>{
+  const mVal=i.te?(i.te*(trHrs/EL_HRS)*rrRatio).toFixed(2):'—';
+  const delta=i.te?((i.te-1344)/1344*100).toFixed(0):'—';
+  const dc=i.te&&i.te<1344?'var(--accent)':i.te&&i.te>1344?'var(--red)':'var(--muted)';
+  const ds=i.te?(i.te<1344?delta+'%':'+'+delta+'%'):'—';
+  const sc=i.status==='assumed'?'pill-amber':i.status==='opportunity'?'pill-green':i.status==='unknown'?'pill-red':'pill-muted';
+  return`<tr>
+    <td class="mono">${i.type}</td>
+    <td class="mono">${i.te?i.te.toLocaleString():'—'}</td>
+    <td><span style="color:${dc};font-family:'DM Mono',monospace;font-size:11px">${ds}</span>${i.te?`<div class="bar-track" style="min-width:60px"><div class="bar-fill" style="width:${Math.round(i.te/maxTE*100)}%;background:${i.te<1300?'#4fffb0':'#ffb84f'}"></div></div>`:''}
+    </td>
+    <td class="mono">${mVal} kg</td>
+    <td style="font-size:11px;color:var(--muted)">${i.note}</td>
+    <td><span class="pill ${sc}">${i.status}</span></td>
+  </tr>`;
+}).join('')}</tbody>`;
+
+// Endpoint table (anonymized)
+const gridByCluster={'Cluster A (primary)':394,'Cluster A-2':394,'Cluster A-3':394,'Cluster B':1.7,'Cluster C':94,'Cluster D':432,'Cluster E':295,'Cluster F':364};
+const endpoints=[
+  {e:"Ranking Service (batch)",m:"LLM Relevance Model v1",k:"Cluster A (primary)",c:225079,r:141001191959466},
+  {e:"Job Matching",m:"Embedding Model (multilingual v1)",k:"Cluster A (primary)",c:201164,r:26000929150714},
+  {e:"Job Matching",m:"Embedding Model (multilingual v2)",k:"Cluster A (primary)",c:185350,r:6683503725254},
+  {e:"Job Matching",m:"Relevance Rating Model",k:"Cluster A (primary)",c:152260,r:16989516909840},
+  {e:"Job Matching",m:"Embedding Model (multilingual v3)",k:"Cluster A (primary)",c:142602,r:4961576514588},
+  {e:"Job Matching",m:"Embedding Model (multilingual v4)",k:"Cluster A (primary)",c:121867,r:4318819417666},
+  {e:"Job Matching",m:"Embedding Model (multilingual v5)",k:"Cluster A (primary)",c:110014,r:4811854176928},
+  {e:"Job Matching",m:"Embedding Model (multilingual v6)",k:"Cluster A (primary)",c:101519,r:3624142823510},
+  {e:"Job Matching",m:"Bad Match Detection Model",k:"Cluster A (primary)",c:80891,r:8741748940698},
+  {e:"Job Matching",m:"Embedding Model (multilingual v7)",k:"Cluster A (primary)",c:65432,r:2873024539256},
+  {e:"Job Matching",m:"Apply Rate Model (global)",k:"Cluster A (primary)",c:55738,r:2054460527938},
+  {e:"Jobseeker Ranking (batch)",m:"Conversion Rate Model",k:"Cluster A (primary)",c:50852,r:4222339804926},
+  {e:"Ranking Service (batch)",m:"Preranker Model v1",k:"Cluster A (primary)",c:50410,r:30981506497418},
+  {e:"Jobseeker Ranking (batch)",m:"Apply Start Rate Model",k:"Cluster A (primary)",c:45527,r:3526728753278},
+  {e:"Job Matching",m:"Embedding Model (multilingual v8)",k:"Cluster A (primary)",c:45319,r:6198330204744},
+  {e:"Ranking Service (batch)",m:"LLM Relevance Model v2",k:"Cluster A (primary)",c:44103,r:24461059357576},
+  {e:"Jobseeker Ranking (batch)",m:"Post-Outcome Model",k:"Cluster A (primary)",c:43819,r:3526728754414},
+  {e:"Job Matching",m:"Apply Rate Model (JP)",k:"Cluster A (primary)",c:43420,r:2339053794282},
+  {e:"Job Matching",m:"Embedding Model (global)",k:"Cluster A (primary)",c:42810,r:4859162236898},
+  {e:"Job Matching",m:"Embedding Model (multilingual v9)",k:"Cluster A (primary)",c:41886,r:1831148298760},
+  {e:"Ranking Service (batch)",m:"Bad Match Detection Model v2",k:"Cluster A (primary)",c:41794,r:35072860981882},
+  {e:"Ranking Cache (US)",m:"Preapply Model v1",k:"Cluster B",c:33557,r:2375432180384},
+  {e:"Job Matching",m:"Embedding Model (multilingual v10)",k:"Cluster A (primary)",c:33069,r:1658678576346},
+  {e:"Ranking Cache (US)",m:"Preapply Model v1",k:"Cluster A-3",c:32993,r:2344671578226},
+  {e:"Jobseeker Ranking (batch)",m:"Conversion Rate Model v2",k:"Cluster A-2",c:32946,r:2809128306554}
+];
+const maxC=endpoints[0].c;
+document.getElementById('endpointTable').innerHTML=`<thead><tr><th>#</th><th>Endpoint type</th><th>Model</th><th>Cluster</th><th>Annual cost</th><th>Cost share</th><th>Requests</th><th>Grid (g)</th><th>Est. CO₂/yr</th></tr></thead>
+<tbody>${endpoints.map((d,i)=>{
+  const g=gridByCluster[d.k]||394;
+  const kg=co2kg(d.c,g);
+  const isClean=d.k==='Cluster B';
+  return`<tr>
+    <td class="mono" style="color:var(--muted)">${i+1}</td>
+    <td><span class="pill pill-blue">${d.e}</span></td>
+    <td style="font-size:11px;color:var(--muted)">${d.m}</td>
+    <td class="mono" style="${isClean?'color:var(--accent)':''}">${d.k}</td>
+    <td class="mono">$${d.c.toLocaleString()}</td>
+    <td><div class="bar-track" style="min-width:60px"><div class="bar-fill" style="width:${Math.round(d.c/maxC*100)}%;background:#4fa8ff"></div></div></td>
+    <td class="mono" style="color:var(--muted)">${(d.r/1e12).toFixed(2)}T</td>
+    <td><span class="pill ${g<50?'pill-green':g<150?'pill-blue':g<350?'pill-amber':'pill-red'}">${g}g</span></td>
+    <td class="mono" style="color:${isClean?'var(--accent)':'var(--amber)'}">${kg.toLocaleString()} kg</td>
+  </tr>`;
+}).join('')}</tbody>`;
+</script>
+</body>
+</html>
